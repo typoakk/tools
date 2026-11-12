@@ -28,6 +28,34 @@ for cmd in curl git zsh; do
     fi
 done
 
+zshrc="$HOME/.zshrc"
+
+# Создаём настройки Zsh, если файла ещё нет
+if [[ ! -e "$zshrc" && ! -L "$zshrc" ]]; then
+    cp /etc/zsh/newuser.zshrc.recommended "$zshrc" ||
+        fail "Не удалось создать $zshrc."
+
+    echo "Конфигурация Zsh создана ✅"
+fi
+
+# Проверяем синтаксис перед сменой оболочки
+zsh -n "$zshrc" ||
+    fail "В $zshrc обнаружена синтаксическая ошибка."
+
+# Выбираем Zsh оболочкой по умолчанию
+target_user=$(id -un)
+zsh_path=$(command -v zsh)
+login_shell=$(getent passwd "$target_user" | cut -d: -f7)
+
+if [[ "$login_shell" == "$zsh_path" ]]; then
+    echo "Zsh уже выбран оболочкой по умолчанию."
+else
+    sudo chsh -s "$zsh_path" "$target_user" ||
+        fail "Не удалось изменить оболочку."
+
+    echo "Zsh выбран оболочкой по умолчанию ✅"
+fi
+
 omz_dir="$HOME/.oh-my-zsh"
 theme_dir="$omz_dir/custom/themes/powerlevel10k"
 zshrc="$HOME/.zshrc"
@@ -45,7 +73,7 @@ else
     installer=$(curl -fsSL \
         https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)
 
-    ZSH="$omz_dir" sh -c "$installer" "" --unattended --keep-zshrc
+    ZSH="$omz_dir" sh -c "$installer" "" --unattended
 
     [[ -f "$omz_dir/oh-my-zsh.sh" ]] ||
         fail "После установки не найден oh-my-zsh.sh."
