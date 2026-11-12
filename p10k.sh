@@ -7,10 +7,25 @@ fail() {
     exit 1
 }
 
+# Обновляем список пакетов один раз
+sudo apt-get update ||
+    fail "Не удалось обновить список пакетов."
+
 # Проверяем необходимые программы
 for cmd in curl git zsh; do
-    command -v "$cmd" >/dev/null 2>&1 ||
-        fail "Не найдена программа: $cmd. Сначала установи её."
+    if command -v "$cmd" >/dev/null 2>&1; then
+        echo "$cmd уже установлен — пропускаем."
+    else
+        echo "Установка $cmd..."
+
+        sudo apt-get install -y "$cmd" ||
+            fail "Не удалось установить $cmd."
+
+        command -v "$cmd" >/dev/null 2>&1 ||
+            fail "После установки команда $cmd не найдена."
+
+        echo "$cmd установлен ✅"
+    fi
 done
 
 omz_dir="$HOME/.oh-my-zsh"
